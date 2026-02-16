@@ -19,7 +19,6 @@ namespace Root {
         }
 
         // Armazenamento simples de componentes
-        std::unordered_map<Entity, Character> characters;
         std::unordered_map<Entity, Position> positions;
         std::unordered_map<Entity, Velocity> velocities;
         std::unordered_map<Entity, Health> healths;
