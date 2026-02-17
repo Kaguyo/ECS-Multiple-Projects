@@ -1,17 +1,21 @@
 #pragma once
+#include <string>
 
-namespace Root {
-    struct Position {
-        float x;
-        float y;
-    };
+struct NameComponent {
+    std::string value;
+};
 
-    struct Velocity {
-        float vx;
-        float vy;
-    };
+struct HealthComponent {
+    int maxHP;
+    int currentHP;
+};
 
-    struct Health {
-        int hp;
-    };
-}
+struct EnergyComponent {
+    int maxEnergy;
+    int currentEnergy;
+};
+
+struct StatsComponent {
+    int attack;
+    int defense;
+};

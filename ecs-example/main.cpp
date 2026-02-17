@@ -1,55 +1,66 @@
 #include <iostream>
-#include <chrono>
-#include <thread>
-
 #include "ECS.h"
 #include "Components.h"
 #include "Systems.h"
+#include "Events.hpp"
 
-using namespace Root;
+using namespace std;
 
 int main() {
     ECS ecs;
+    EventBus eventBus;
 
-    MovementSystem movementSystem;
-    HealthSystem healthSystem;
+    // Criar player
+    int player = ecs.createEntity();
+    ecs.addComponent(player, NameComponent{"Player"});
+    ecs.addComponent(player, HealthComponent{100, 100});
+    ecs.addComponent(player, EnergyComponent{50, 50});
+    ecs.addComponent(player, StatsComponent{15, 5});
 
-    Entity player = ecs.createEntity();
+    // Criar inimigo
+    int enemy  = ecs.createEntity();
+    ecs.addComponent(enemy, NameComponent{"CPU"});
+    ecs.addComponent(enemy, HealthComponent{80, 80});
+    ecs.addComponent(enemy, EnergyComponent{30, 30});
+    ecs.addComponent(enemy, StatsComponent{10, 4});
 
-    ecs.positions[player] = {0.0f, 0.0f};
-    ecs.velocities[player] = {100.0f, 50.0f}; // unidades por segundo
-    ecs.healths[player] = {100};
+    RenderSystem renderer;
+    CombatSystem combat(eventBus);
+    InputSystem input;
 
-    const float targetFPS = 60.0f;
-    const float targetFrameTime = 1.0f / targetFPS;
+    // Registra handlers
+    combat.registerHandlers(ecs);
 
-    using clock = std::chrono::high_resolution_clock;
+    bool playerTurn = true;
+    bool running = true;
 
-    auto previousTime = clock::now();
+    while (running) {
+        // Render
+        renderer.draw(ecs);
 
-    for (;;) {
-        auto currentTime = clock::now();
-        std::chrono::duration<float> elapsed = currentTime - previousTime;
-        previousTime = currentTime;
+        if (playerTurn) {
+            int choice = input.askChoice();
 
-        float deltaTime = elapsed.count();
+            switch (choice) {
+                case 1: eventBus.send(Event{EvtType::Attack, player, enemy}); break;
+                case 2: eventBus.send(Event{EvtType::Defend, player, player}); break;
+                case 3: eventBus.send(Event{EvtType::Special, player, enemy}); break;
+            }
 
-        movementSystem.update(ecs, deltaTime);
-        healthSystem.update(ecs);
+            playerTurn = false;
+        } else {
+            eventBus.send(Event{EvtType::Attack, enemy, player});
+            playerTurn = true;
+        }
 
-        std::cout << "Player position: "
-                  << ecs.positions[player].x << ", "
-                  << ecs.positions[player].y << "\n";
+        // Condição de fim
+        auto ph = ecs.getComponent<HealthComponent>(player);
+        auto eh = ecs.getComponent<HealthComponent>(enemy);
 
-        auto frameEndTime = clock::now();
-        std::chrono::duration<float> frameDuration = frameEndTime - currentTime;
-
-        float timeToSleep = targetFrameTime - frameDuration.count();
-
-        if (timeToSleep > 0) {
-            std::this_thread::sleep_for(
-                std::chrono::duration<float>(timeToSleep)
-            );
+        if (ph && eh && (ph->currentHP <= 0 || eh->currentHP <= 0)) {
+            renderer.draw(ecs);
+            cout << "\n=== FIM DO COMBATE ===\n";
+            running = false;
         }
     }
 

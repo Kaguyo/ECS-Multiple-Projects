@@ -1,26 +1,48 @@
 #pragma once
 #include <unordered_map>
-#include <cstdint>
-#include "Components.h"
+#include <vector>
+#include <typeindex>
+#include <memory>
+#include <cassert>
 
-using Entity = std::uint32_t;
+using EntityID = int;
 
+class ECS {
+public:
+    EntityID createEntity() {
+        EntityID id = nextID++;
+        entities.push_back(id);
+        return id;
+    }
 
-namespace Root {
+    const std::vector<EntityID>& getEntities() const {
+        return entities;
+    }
 
-    class ECS {
+    template<typename Comp>
+    void addComponent(EntityID id, Comp comp) {
+        auto type = std::type_index(typeid(Comp));
+        auto& map = getComponentMap<Comp>();
+        map[id] = std::make_shared<Comp>(comp);
+    }
 
-    private:
-        Entity nextEntity = 0;
-
-    public:
-        Entity createEntity() {
-            return nextEntity++;
+    template<typename Comp>
+    std::shared_ptr<Comp> getComponent(EntityID id) {
+        auto& map = getComponentMap<Comp>();
+        auto it = map.find(id);
+        if (it != map.end()) {
+            return std::static_pointer_cast<Comp>(it->second);
         }
+        return nullptr;
+    }
 
-        // Armazenamento simples de componentes
-        std::unordered_map<Entity, Position> positions;
-        std::unordered_map<Entity, Velocity> velocities;
-        std::unordered_map<Entity, Health> healths;
-    };
-}
+private:
+    EntityID nextID = 0;
+    std::vector<EntityID> entities;
+
+    template<typename Comp>
+    std::unordered_map<EntityID, std::shared_ptr<void>>& getComponentMap() {
+        static std::unordered_map<EntityID, std::shared_ptr<void>> map;
+        return map;
+    }
+};
