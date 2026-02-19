@@ -58,6 +58,16 @@ public:
                     m_window.close();
                 }
 
+                // Captura redimensionamento
+                if (const auto* resized = event->getIf<sf::Event::Resized>()) {
+                    sf::FloatRect visibleArea({0.f, 0.f}, sf::Vector2f(resized->size));
+                    m_window.setView(sf::View(visibleArea));
+
+                    std::string msg = "Nova largura: " + std::to_string(resized->size.x)
+                    + " | Nova altura: " + std::to_string(resized->size.y);
+                    m_state.pushConsole(msg);
+                }
+
                 // Mouse move → hover state dos botões
                 if (const auto* mm = event->getIf<sf::Event::MouseMoved>()) {
                     sf::Vector2f pos{
